@@ -15,18 +15,23 @@ WHISPER_MODEL = os.path.join(WHISPER_DIR, "models", "ggml-base.en.bin")
 def transcribe():
     try:
         # ----------------------------
+        # 0. Validar que main existe
+        # ----------------------------
+        if not os.path.isfile(WHISPER_MAIN):
+            print(f"[ERROR] Ejecutable no encontrado en: {WHISPER_MAIN}")
+            return jsonify({"error": "No se encontró el ejecutable 'main'"}), 500
+
+        # ----------------------------
         # 1. Capturar archivo binario
         # ----------------------------
         input_bytes = None
         filename = f"/tmp/{uuid.uuid4()}.oga"
 
         if 'data' in request.files:
-            # Método tradicional con multipart/form-data
             file = request.files['data']
             file.save(filename)
             print("[INFO] Archivo recibido como multipart")
         else:
-            # Alternativa: leer desde el body binario
             input_bytes = request.get_data()
             if not input_bytes:
                 return jsonify({"error": "No se recibió ningún archivo."}), 400
@@ -56,8 +61,6 @@ def transcribe():
             subprocess.run(command.split(), check=True)
         except subprocess.CalledProcessError as e:
             return jsonify({"error": f"Whisper falló: {str(e)}"}), 500
-        except FileNotFoundError:
-            return jsonify({"error": "No se encontró el ejecutable 'main'"}), 500
 
         # ----------------------------
         # 4. Leer transcripción
@@ -69,7 +72,7 @@ def transcribe():
             return jsonify({"error": "No se generó archivo de texto"}), 500
 
         # ----------------------------
-        # 5. Limpieza de archivos
+        # 5. Limpieza
         # ----------------------------
         for f in [filename, output_path, txt_file]:
             try:
