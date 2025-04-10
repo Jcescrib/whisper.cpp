@@ -7,21 +7,38 @@ app = Flask(__name__)
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
+    # Verificar si el archivo 'data' está en la solicitud
+    if 'data' not in request.files:
+        return jsonify({"error": "No se encontró el archivo en la solicitud."}), 400
+
     audio = request.files['data']
+
+    # Verificar si el archivo tiene un nombre válido
+    if audio.filename == '':
+        return jsonify({"error": "Nombre de archivo no válido."}), 400
+
+    # Crear un nombre de archivo único en el directorio temporal
     filename = f"/tmp/{uuid.uuid4()}.wav"
     audio.save(filename)
 
-    # Ejecuta whisper.cpp
+    # Ejecutar whisper.cpp
     command = f"./main -m models/ggml-base.en.bin -f {filename} -otxt -l es"
-    subprocess.run(command.split(), check=True)
+    try:
+        subprocess.run(command.split(), check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Error al ejecutar whisper.cpp: {str(e)}"}), 500
 
-    # Lee resultado
+    # Leer el resultado
     txt_file = filename.replace(".wav", ".txt")
     try:
         with open(txt_file, "r") as f:
             result = f.read()
     except FileNotFoundError:
-        result = "ERROR: No transcription file found."
+        return jsonify({"error": "No se encontró el archivo de transcripción."}), 500
+
+    # Eliminar archivos temporales
+    os.remove(filename)
+    os.remove(txt_file)
 
     return jsonify({"text": result})
 
