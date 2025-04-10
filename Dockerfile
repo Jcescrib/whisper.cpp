@@ -1,28 +1,29 @@
 FROM debian:bullseye
 
-# Instalar dependencias
+# Instalar dependencias del sistema
 RUN apt update && apt install -y \
-  build-essential cmake curl ffmpeg libsndfile1 python3 python3-pip git
+    build-essential cmake curl ffmpeg libsndfile1 python3 python3-pip git
 
-# Clonar y compilar whisper.cpp
+# Clonar whisper.cpp y compilar
 RUN git clone https://github.com/ggml-org/whisper.cpp /app
 WORKDIR /app
 RUN make
+RUN chmod +x main
 
-# Descargar modelo base (puedes cambiar por multilingüe si quieres)
+# Descargar el modelo base
 RUN mkdir -p models && curl -L -o models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
 
-# Instalar Flask y Pydub
+# Instalar Python y librerías
 RUN pip3 install flask pydub
 
-# Copiar tu servidor al directorio correcto
+# Copiar el servidor Flask
 COPY server.py /app/server.py
 
-# Garantizar que el CMD se ejecute desde /app
+# Garantizar que todo corre desde /app
 WORKDIR /app
 
-# Exponer el puerto de Flask
+# Exponer el puerto
 EXPOSE 5000
 
-# Ejecutar el servidor
+# Ejecutar
 CMD ["python3", "server.py"]
