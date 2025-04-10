@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    audio = request.files['file']
+    audio = request.files['data']
     filename = f"/tmp/{uuid.uuid4()}.wav"
     audio.save(filename)
 
